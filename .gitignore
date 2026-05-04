@@ -36,6 +36,3 @@ htmlcov/
 
 # Project temp files
 TEMP/
-
-# DB credentials
-db/connection.py
