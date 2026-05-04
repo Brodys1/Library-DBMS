@@ -1,0 +1,165 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+
+COLUMNS = ("BookID", "Title", "Author", "Genre", "Year", "ISBN", "Available")
+
+
+class BooksTab(ttk.Frame):
+    def __init__(self, parent, service):
+        super().__init__(parent)
+        self.service = service
+        self._build()
+
+    def _build(self):
+        # Search bar
+        search_frame = ttk.Frame(self, padding=(8, 6))
+        search_frame.pack(fill=tk.X)
+
+        ttk.Label(search_frame, text="Search:").pack(side=tk.LEFT)
+        self.search_var = tk.StringVar()
+        search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=30)
+        search_entry.pack(side=tk.LEFT, padx=(4, 4))
+        search_entry.bind("<Return>", lambda _: self.refresh())
+        ttk.Button(search_frame, text="Search", command=self.refresh).pack(side=tk.LEFT)
+        ttk.Button(search_frame, text="Clear", command=self._clear_search).pack(side=tk.LEFT, padx=(4, 0))
+
+        # Table
+        table_frame = ttk.Frame(self)
+        table_frame.pack(fill=tk.BOTH, expand=True, padx=8)
+
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL)
+        self.tree = ttk.Treeview(
+            table_frame,
+            columns=COLUMNS,
+            show="headings",
+            yscrollcommand=scrollbar.set,
+            selectmode="browse",
+        )
+        scrollbar.config(command=self.tree.yview)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.tree.pack(fill=tk.BOTH, expand=True)
+
+        col_widths = {"BookID": 60, "Title": 200, "Author": 150, "Genre": 100,
+                      "Year": 60, "ISBN": 130, "Available": 70}
+        for col in COLUMNS:
+            self.tree.heading(col, text=col, command=lambda c=col: self._sort(c))
+            self.tree.column(col, width=col_widths.get(col, 100), anchor=tk.CENTER)
+        self.tree.column("Title", anchor=tk.W)
+        self.tree.column("Author", anchor=tk.W)
+
+        self.tree.bind("<<TreeviewSelect>>", self._on_select)
+
+        # Form
+        form_frame = ttk.LabelFrame(self, text="Book Details", padding=(10, 6))
+        form_frame.pack(fill=tk.X, padx=8, pady=(4, 0))
+
+        row1 = ("Title", "Author", "Genre")
+        row2 = ("Published Year", "ISBN")
+        self.form_vars = {}
+        for i, label in enumerate(row1):
+            ttk.Label(form_frame, text=label + ":").grid(row=0, column=i * 2, sticky=tk.E, padx=(8, 2), pady=(0, 4))
+            var = tk.StringVar()
+            ttk.Entry(form_frame, textvariable=var, width=22).grid(row=0, column=i * 2 + 1, padx=(0, 6), pady=(0, 4))
+            self.form_vars[label] = var
+        for i, label in enumerate(row2):
+            ttk.Label(form_frame, text=label + ":").grid(row=1, column=i * 2, sticky=tk.E, padx=(8, 2))
+            var = tk.StringVar()
+            ttk.Entry(form_frame, textvariable=var, width=22).grid(row=1, column=i * 2 + 1, padx=(0, 6))
+            self.form_vars[label] = var
+
+        # Buttons
+        btn_frame = ttk.Frame(self, padding=(8, 4))
+        btn_frame.pack(fill=tk.X)
+
+        ttk.Button(btn_frame, text="Add Book", command=self._add).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Update Book", command=self._update).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Delete Book", command=self._delete).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Refresh", command=self.refresh).pack(side=tk.RIGHT, padx=2)
+
+        self.selected_id = None
+
+    def refresh(self):
+        query = self.search_var.get().strip()
+        try:
+            rows = self.service.search_books(query) if query else self.service.get_all_books()
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+            return
+        self._populate(rows)
+
+    def _populate(self, rows):
+        self.tree.delete(*self.tree.get_children())
+        for row in rows:
+            avail = "Yes" if row.get("Available") else "No"
+            self.tree.insert("", tk.END, iid=row["BookID"], values=(
+                row["BookID"], row["Title"], row["Author"], row["Genre"],
+                row.get("PublishedYear", ""), row.get("ISBN", ""), avail,
+            ))
+
+    def _on_select(self, _event):
+        selected = self.tree.selection()
+        if not selected:
+            return
+        values = self.tree.item(selected[0], "values")
+        self.selected_id = values[0]
+        keys = ("Title", "Author", "Genre", "Published Year", "ISBN")
+        for key, val in zip(keys, values[1:6]):
+            self.form_vars[key].set(val)
+
+    def _clear_search(self):
+        self.search_var.set("")
+        self.refresh()
+
+    def _get_form(self):
+        return (
+            self.form_vars["Title"].get().strip(),
+            self.form_vars["Author"].get().strip(),
+            self.form_vars["Genre"].get().strip(),
+            self.form_vars["Published Year"].get().strip(),
+            self.form_vars["ISBN"].get().strip(),
+        )
+
+    def _add(self):
+        title, author, genre, year, isbn = self._get_form()
+        if not all([title, author, genre, year, isbn]):
+            messagebox.showwarning("Validation", "All fields are required.")
+            return
+        try:
+            self.service.add_book(title, author, genre, year, isbn)
+            self.refresh()
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+
+    def _update(self):
+        if not self.selected_id:
+            messagebox.showwarning("Selection", "Select a book to update.")
+            return
+        title, author, genre, year, isbn = self._get_form()
+        if not all([title, author, genre, year, isbn]):
+            messagebox.showwarning("Validation", "All fields are required.")
+            return
+        try:
+            self.service.update_book(self.selected_id, title, author, genre, year, isbn)
+            self.refresh()
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+
+    def _delete(self):
+        if not self.selected_id:
+            messagebox.showwarning("Selection", "Select a book to delete.")
+            return
+        if not messagebox.askyesno("Confirm", "Delete this book?"):
+            return
+        try:
+            self.service.delete_book(self.selected_id)
+            self.selected_id = None
+            self.refresh()
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+
+    def _sort(self, col):
+        items = [(self.tree.set(k, col), k) for k in self.tree.get_children("")]
+        items.sort()
+        for index, (_, k) in enumerate(items):
+            self.tree.move(k, "", index)
