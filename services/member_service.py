@@ -16,7 +16,7 @@ def search_members(query):
     cursor = conn.cursor(dictionary=True)
     like = f"%{query}%"
     cursor.execute(
-        "SELECT * FROM Members WHERE Name LIKE %s OR Email LIKE %s OR Phone LIKE %s",
+        "SELECT * FROM Members WHERE Name LIKE %s OR Email LIKE %s OR PhoneNumber LIKE %s",
         (like, like, like),
     )
     rows = cursor.fetchall()
@@ -25,24 +25,24 @@ def search_members(query):
     return rows
 
 
-def add_member(name, email, phone, address):
+def add_member(name, phone, email, address, membership_type):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO Members (Name, Email, Phone, Address) VALUES (%s, %s, %s, %s)",
-        (name, email, phone, address),
+        "INSERT INTO Members (Name, PhoneNumber, Email, Address, MembershipType) VALUES (%s, %s, %s, %s, %s)",
+        (name, phone, email, address, membership_type),
     )
     conn.commit()
     cursor.close()
     conn.close()
 
 
-def update_member(member_id, name, email, phone, address):
+def update_member(member_id, name, phone, email, address, membership_type):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE Members SET Name=%s, Email=%s, Phone=%s, Address=%s WHERE MemberID=%s",
-        (name, email, phone, address, member_id),
+        "UPDATE Members SET Name=%s, PhoneNumber=%s, Email=%s, Address=%s, MembershipType=%s WHERE MemberID=%s",
+        (name, phone, email, address, membership_type, member_id),
     )
     conn.commit()
     cursor.close()
