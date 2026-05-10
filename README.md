@@ -5,12 +5,12 @@ A desktop Library Database Management System built with Python and MySQL. Design
 ## Project Overview
 
 This application follows a three-tier architecture:
-- **Presentation Layer**: tkinter desktop GUI with tabs for Books, Members, and Borrow/Return
+- **Presentation Layer**: tkinter desktop GUI with tabs for Books, Members, Staff, and Borrow/Return
 - **Application Layer**: Python service classes that contain business logic and execute SQL directly
-- **Data Layer**: MySQL relational database with tables for Authors, Books, Members, and BorrowRecords
+- **Data Layer**: MySQL relational database with tables for Books, Members, Staff, and BorrowRecords
 
 **Features:**
-- Add, update, delete, and search books and members
+- Add, update, delete, and search books, members, and staff
 - Check out books to members and process returns
 - Automatic overdue fine calculation ($0.25/day after a 14-day loan period)
 - Borrow history log
@@ -20,6 +20,7 @@ This application follows a three-tier architecture:
 - Python 3.10+
 - MySQL 8.0+
 - [mysql-connector-python](https://pypi.org/project/mysql-connector-python/) (installed via pip)
+- [pytest](https://pypi.org/project/pytest/) (installed via pip, for testing only)
 
 ## Setup and Installation
 
@@ -42,7 +43,7 @@ pip install -r requirements.txt
 
 **4. Install and start MySQL**
 
-If MySQL is not already installed (MacOS Homebrew):
+If MySQL is not already installed (macOS Homebrew):
 ```
 brew install mysql
 brew services start mysql
@@ -50,14 +51,9 @@ brew services start mysql
 
 **5. Create the database and tables**
 
-Log into MySQL and create the database:
+This command creates the database, all tables, and loads seed data:
 ```
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS library_db;"
-```
-
-Then create the required tables:
-```
-mysql -u root library_db < db/schema.sql
+mysql -u root < db/schema.sql
 ```
 
 ## Database Configuration
@@ -84,10 +80,16 @@ python main.py
 
 ## Running Tests
 
-Uses pytest and runs against an isolated `library_test_db` database.
+Uses pytest and runs against an isolated `library_test_db` database. Requires MySQL to be running.
 
 ```
+.venv/bin/pytest tests/ -v
+```
+
+Or activate the venv first and use plain `pytest`:
+
+```
+source .venv/bin/activate
 pytest tests/ -v
 ```
 
-Requires MySQL to be running. The test database is created and dropped automatically each session.
