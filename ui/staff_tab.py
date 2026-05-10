@@ -2,10 +2,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 
-COLUMNS = ("MemberID", "Name", "PhoneNumber", "Email", "Address", "MembershipType")
+COLUMNS = ("StaffID", "Name", "Role", "Email", "PhoneNumber")
 
 
-class MembersTab(ttk.Frame):
+class StaffTab(ttk.Frame):
     def __init__(self, parent, service):
         super().__init__(parent)
         self.service = service
@@ -38,21 +38,20 @@ class MembersTab(ttk.Frame):
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-        col_widths = {"MemberID": 70, "Name": 140, "PhoneNumber": 110, "Email": 180, "Address": 180, "MembershipType": 100}
+        col_widths = {"StaffID": 70, "Name": 160, "Role": 130, "Email": 200, "PhoneNumber": 120}
         for col in COLUMNS:
             self.tree.heading(col, text=col, command=lambda c=col: self._sort(c))
             self.tree.column(col, width=col_widths.get(col, 100), anchor=tk.CENTER)
         self.tree.column("Name", anchor=tk.W)
         self.tree.column("Email", anchor=tk.W)
-        self.tree.column("Address", anchor=tk.W)
 
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
-        form_frame = ttk.LabelFrame(self, text="Member Details", padding=(10, 6))
+        form_frame = ttk.LabelFrame(self, text="Staff Details", padding=(10, 6))
         form_frame.pack(fill=tk.X, padx=8, pady=(4, 0))
 
-        row1 = ("Name", "Email")
-        row2 = ("PhoneNumber", "Address", "MembershipType")
+        row1 = ("Name", "Role")
+        row2 = ("Email", "PhoneNumber")
         self.form_vars = {}
         for i, label in enumerate(row1):
             ttk.Label(form_frame, text=label + ":").grid(row=0, column=i * 2, sticky=tk.E, padx=(8, 2), pady=(0, 4))
@@ -68,9 +67,9 @@ class MembersTab(ttk.Frame):
         btn_frame = ttk.Frame(self, padding=(8, 4))
         btn_frame.pack(fill=tk.X)
 
-        ttk.Button(btn_frame, text="Add Member", command=self._add).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_frame, text="Update Member", command=self._update).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_frame, text="Delete Member", command=self._delete).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Add Staff", command=self._add).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Update Staff", command=self._update).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Delete Staff", command=self._delete).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_frame, text="Refresh", command=self.refresh).pack(side=tk.RIGHT, padx=2)
 
         self.selected_id = None
@@ -78,7 +77,7 @@ class MembersTab(ttk.Frame):
     def refresh(self):
         query = self.search_var.get().strip()
         try:
-            rows = self.service.search_members(query) if query else self.service.get_all_members()
+            rows = self.service.search_staff(query) if query else self.service.get_all_staff()
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
             return
@@ -87,9 +86,9 @@ class MembersTab(ttk.Frame):
     def _populate(self, rows):
         self.tree.delete(*self.tree.get_children())
         for row in rows:
-            self.tree.insert("", tk.END, iid=row["MemberID"], values=(
-                row["MemberID"], row["Name"], row["PhoneNumber"],
-                row["Email"], row["Address"], row["MembershipType"],
+            self.tree.insert("", tk.END, iid=row["StaffID"], values=(
+                row["StaffID"], row["Name"], row["Role"],
+                row["Email"], row["PhoneNumber"],
             ))
 
     def _on_select(self, _event):
@@ -98,8 +97,8 @@ class MembersTab(ttk.Frame):
             return
         values = self.tree.item(selected[0], "values")
         self.selected_id = values[0]
-        keys = ("Name", "Email", "PhoneNumber", "Address", "MembershipType")
-        for key, val in zip(keys, (values[1], values[3], values[2], values[4], values[5])):
+        keys = ("Name", "Role", "Email", "PhoneNumber")
+        for key, val in zip(keys, values[1:]):
             self.form_vars[key].set(val)
 
     def _clear_search(self):
@@ -109,45 +108,44 @@ class MembersTab(ttk.Frame):
     def _get_form(self):
         return (
             self.form_vars["Name"].get().strip(),
-            self.form_vars["PhoneNumber"].get().strip(),
+            self.form_vars["Role"].get().strip(),
             self.form_vars["Email"].get().strip(),
-            self.form_vars["Address"].get().strip(),
-            self.form_vars["MembershipType"].get().strip(),
+            self.form_vars["PhoneNumber"].get().strip(),
         )
 
     def _add(self):
-        name, phone, email, address, membership = self._get_form()
-        if not all([name, phone, email, address, membership]):
+        name, role, email, phone = self._get_form()
+        if not all([name, role, email, phone]):
             messagebox.showwarning("Validation", "All fields are required.")
             return
         try:
-            self.service.add_member(name, phone, email, address, membership)
+            self.service.add_staff(name, role, email, phone)
             self.refresh()
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
     def _update(self):
         if not self.selected_id:
-            messagebox.showwarning("Selection", "Select a member to update.")
+            messagebox.showwarning("Selection", "Select a staff member to update.")
             return
-        name, phone, email, address, membership = self._get_form()
-        if not all([name, phone, email, address, membership]):
+        name, role, email, phone = self._get_form()
+        if not all([name, role, email, phone]):
             messagebox.showwarning("Validation", "All fields are required.")
             return
         try:
-            self.service.update_member(self.selected_id, name, phone, email, address, membership)
+            self.service.update_staff(self.selected_id, name, role, email, phone)
             self.refresh()
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
     def _delete(self):
         if not self.selected_id:
-            messagebox.showwarning("Selection", "Select a member to delete.")
+            messagebox.showwarning("Selection", "Select a staff member to delete.")
             return
-        if not messagebox.askyesno("Confirm", "Delete this member?"):
+        if not messagebox.askyesno("Confirm", "Delete this staff member?"):
             return
         try:
-            self.service.delete_member(self.selected_id)
+            self.service.delete_staff(self.selected_id)
             self.selected_id = None
             self.refresh()
         except Exception as e:
