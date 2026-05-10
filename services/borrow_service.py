@@ -10,7 +10,8 @@ def get_active_borrows():
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
         """
-        SELECT br.RecordID, b.Title, m.Name, br.BorrowDate, br.DueDate, br.FineAmount
+        SELECT br.RecordID, b.Title, m.Name, br.BorrowDate, br.DueDate,
+               br.FineAmount, br.FineStatus
         FROM BorrowRecords br
         JOIN Books b ON br.BookID = b.BookID
         JOIN Members m ON br.MemberID = m.MemberID
@@ -29,7 +30,7 @@ def get_all_borrows():
     cursor.execute(
         """
         SELECT br.RecordID, b.Title, m.Name, br.BorrowDate, br.DueDate,
-               br.ReturnDate, br.FineAmount
+               br.ReturnDate, br.FineAmount, br.FineStatus
         FROM BorrowRecords br
         JOIN Books b ON br.BookID = b.BookID
         JOIN Members m ON br.MemberID = m.MemberID
@@ -42,16 +43,16 @@ def get_all_borrows():
     return rows
 
 
-def checkout_book(book_id, member_id):
+def checkout_book(book_id, member_id, staff_id):
     borrow_date = date.today()
     due_date = borrow_date + timedelta(days=LOAN_DAYS)
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO BorrowRecords (BookID, MemberID, BorrowDate, DueDate, FineAmount) VALUES (%s, %s, %s, %s, 0.00)",
-        (book_id, member_id, borrow_date, due_date),
+        "INSERT INTO BorrowRecords (BookID, MemberID, StaffID, BorrowDate, DueDate, FineAmount, FineStatus) VALUES (%s, %s, %s, %s, %s, 0.00, 'None')",
+        (book_id, member_id, staff_id, borrow_date, due_date),
     )
-    cursor.execute("UPDATE Books SET Available=0 WHERE BookID=%s", (book_id,))
+    cursor.execute("UPDATE Books SET Availability=FALSE WHERE BookID=%s", (book_id,))
     conn.commit()
     cursor.close()
     conn.close()
@@ -66,18 +67,20 @@ def return_book(record_id):
     )
     record = cursor.fetchone()
     fine = 0.0
+    fine_status = 'None'
     if record:
         due = record["DueDate"]
         if isinstance(due, str):
             due = date.fromisoformat(due)
         if return_date > due:
             fine = (return_date - due).days * FINE_PER_DAY
+            fine_status = 'Unpaid'
         cursor.execute(
-            "UPDATE BorrowRecords SET ReturnDate=%s, FineAmount=%s WHERE RecordID=%s",
-            (return_date, fine, record_id),
+            "UPDATE BorrowRecords SET ReturnDate=%s, FineAmount=%s, FineStatus=%s WHERE RecordID=%s",
+            (return_date, fine, fine_status, record_id),
         )
         cursor.execute(
-            "UPDATE Books SET Available=1 WHERE BookID=%s", (record["BookID"],)
+            "UPDATE Books SET Availability=TRUE WHERE BookID=%s", (record["BookID"],)
         )
         conn.commit()
     cursor.close()
