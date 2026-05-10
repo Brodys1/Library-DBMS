@@ -81,3 +81,13 @@ Update `user`, `password`, and `unix_socket` to match your local MySQL setup. On
 ```
 python main.py
 ```
+
+## Running Tests
+
+Uses pytest and runs against an isolated `library_test_db` database.
+
+```
+pytest tests/ -v
+```
+
+Requires MySQL to be running. The test database is created and dropped automatically each session.
