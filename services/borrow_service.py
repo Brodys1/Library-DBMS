@@ -1,8 +1,8 @@
 from db.connection import get_connection
 from datetime import date, timedelta
 
-LOAN_DAYS = 14
-FINE_PER_DAY = 0.25
+LOAN_DAYS = 14  # standard loan period in days
+FINE_PER_DAY = 0.25 # fine rate per overdue day in dollars
 
 
 def get_active_borrows():
@@ -72,6 +72,7 @@ def return_book(record_id):
         due = record["DueDate"]
         if isinstance(due, str):
             due = date.fromisoformat(due)
+        # FineStatus is only set to Unpaid when the book is returned late
         if return_date > due:
             fine = (return_date - due).days * FINE_PER_DAY
             fine_status = 'Unpaid'

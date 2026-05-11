@@ -12,6 +12,7 @@ def get_all_books():
 
 
 def search_books(query):
+    # Matches query against Title, Author, and Genre
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     like = f"%{query}%"

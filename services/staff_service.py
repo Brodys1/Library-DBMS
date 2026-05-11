@@ -12,6 +12,7 @@ def get_all_staff():
 
 
 def search_staff(query):
+    # Matches query against Name, Role, and Email
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     like = f"%{query}%"

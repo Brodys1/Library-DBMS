@@ -1,6 +1,6 @@
 import mysql.connector
 
-
+# Connection settings for the local MySQL instance
 DB_CONFIG = {
     "host": "localhost",
     "unix_socket": "/tmp/mysql.sock",
@@ -11,5 +11,7 @@ DB_CONFIG = {
 
 
 def get_connection():
-    """Return a new MySQL connection using DB_CONFIG."""
-    return mysql.connector.connect(**DB_CONFIG)
+    try:
+        return mysql.connector.connect(**DB_CONFIG)
+    except mysql.connector.Error as e:
+        raise RuntimeError(f"Database connection failed: {e}") from e

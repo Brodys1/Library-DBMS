@@ -12,6 +12,7 @@ def get_all_members():
 
 
 def search_members(query):
+    # Matches query against Name, Email, and PhoneNumber
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     like = f"%{query}%"

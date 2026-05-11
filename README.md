@@ -51,10 +51,14 @@ brew services start mysql
 
 **5. Create the database and tables**
 
-This command creates the database, all tables, and loads seed data:
+Run both scripts in order. The first creates the schema and the second loads seed data:
 ```
-mysql -u root < db/schema.sql
+mysql -u root < db/create_schema.sql
+mysql -u root < db/initialize_data.sql
 ```
+
+> If you get a permissions error on macOS, ensure your user has read access to the `db/` directory:
+> `chmod +r db/create_schema.sql db/initialize_data.sql`
 
 ## Database Configuration
 

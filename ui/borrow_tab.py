@@ -95,7 +95,7 @@ class BorrowTab(ttk.Frame):
     def _populate_active(self, rows):
         self.active_tree.delete(*self.active_tree.get_children())
         for row in rows:
-            self.active_tree.insert("", tk.END, iid=row["RecordID"], values=(
+            self.active_tree.insert("", tk.END, iid=row["RecordID"], values=(  # iid lets selected[0] serve as record_id
                 row["RecordID"], row["Title"], row["Name"],
                 row["BorrowDate"], row["DueDate"],
                 f"{row['FineAmount']:.2f}", row["FineStatus"],
